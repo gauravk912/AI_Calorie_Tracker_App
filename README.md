@@ -14,8 +14,6 @@
   <img src="assets/readme/Features_List.png" alt="AI Cal Tracker Features List" width="230" />
 </p>
 
-> Replace the screenshot paths above with your final exported app images. A good convention is `assets/readme/...` for GitHub screenshots.
-
 ## What this app does
 
 AI Cal Tracker helps users move from setup to action in one flow:
@@ -158,7 +156,7 @@ These are either clearly hinted at or partially scaffolded in the current codeba
 - Food scanning / camera-based logging for premium users.
 - Deeper health insights and richer AI coaching on top of historical logs.
 
-## Why this project stands out
+## Why this project
 
 This is not just a calorie logger. It combines **AI personalization**, **real user data persistence**, **nutrition search**, **exercise estimation**, and a **production-style mobile architecture** into one app. The result is a stronger portfolio project because it demonstrates both product thinking and implementation across mobile, AI, APIs, and cloud storage.
 
