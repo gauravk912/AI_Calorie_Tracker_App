@@ -1,4 +1,4 @@
-import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
+import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
 import { db } from "../config/firebase";
 
 export const saveUserProfileIfNeeded = async (uid: string, data: { email: string; firstName?: string | null; lastName?: string | null; imageUrl?: string | null }) => {
@@ -6,6 +6,7 @@ export const saveUserProfileIfNeeded = async (uid: string, data: { email: string
     const userRef = doc(db, "users", uid);
     const userSnap = await getDoc(userRef);
 
+    // If the document of user does not exist, create it
     if (!userSnap.exists()) {
       await setDoc(userRef, {
         userId: uid,
@@ -40,23 +41,23 @@ export const checkOnboardingStatus = async (uid: string): Promise<boolean> => {
 };
 
 export const updateUserMetrics = async (
-  uid: string, 
-  metrics: { 
-    gender: string; 
-    goal: string; 
-    workoutDays: string; 
-    dob: { date: string; month: string; year: string; }; 
-    height: { feets: string; inches: string; }; 
-    weight: string; 
+  uid: string,
+  metrics: {
+    gender: string;
+    goal: string;
+    workoutDays: string;
+    dob: { date: string; month: string; year: string; };
+    height: { feets: string; inches: string; };
+    weight: string;
   },
   aiPlan: any
 ) => {
   try {
     const userRef = doc(db, "users", uid);
-    await setDoc(userRef, { 
-      metrics, 
+    await setDoc(userRef, {
+      metrics,
       aiPlan,
-      onboardingCompleted: true 
+      onboardingCompleted: true
     }, { merge: true });
     console.log("User metrics and AI Blueprint saved securely to Firestore");
   } catch (error) {

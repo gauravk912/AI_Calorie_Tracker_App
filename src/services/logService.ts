@@ -21,6 +21,14 @@ export interface ExerciseLog {
   timestamp: number;
 }
 
+export interface AIInsightDoc {
+  healthScore: number;
+  insightMessage: string;
+  badges: string[];
+  activityMomentumTitle: string;
+  activityMomentumText: string;
+}
+
 export interface DailyLogDoc {
   date: string;
   totalCalories: number;
@@ -60,6 +68,37 @@ export const fetchDailyLogs = async (uid: string, dateObj: Date): Promise<DailyL
   } catch (error) {
     console.error("Error fetching daily logs:", error);
     throw error;
+  }
+};
+
+export const fetchWeeklyLogs = async (uid: string, targetDateObj: Date): Promise<DailyLogDoc[]> => {
+  const promises = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(targetDateObj);
+    d.setDate(d.getDate() - i);
+    promises.push(fetchDailyLogs(uid, d));
+  }
+  return Promise.all(promises);
+};
+
+export const fetchAIInsight = async (uid: string, targetDateStr: string): Promise<AIInsightDoc | null> => {
+  try {
+    const ref = doc(db, "users", uid, "insights", targetDateStr);
+    const snap = await getDoc(ref);
+    if (snap.exists()) return snap.data() as AIInsightDoc;
+    return null;
+  } catch (e) {
+    console.error("Error fetching AI Insights", e);
+    return null;
+  }
+};
+
+export const saveAIInsight = async (uid: string, targetDateStr: string, data: AIInsightDoc) => {
+  try {
+    const ref = doc(db, "users", uid, "insights", targetDateStr);
+    await setDoc(ref, data);
+  } catch (e) {
+    console.error("Error saving AI Insights", e);
   }
 };
 

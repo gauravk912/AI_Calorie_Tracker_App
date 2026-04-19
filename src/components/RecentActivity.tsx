@@ -26,7 +26,7 @@ export function RecentActivity({ meals = [], exercises = [] }: { meals?: MealLog
     ...meals.map(m => ({
        id: m.id,
        recordType: 'meal' as const,
-       title: m.title,
+       title: m.title || (m as any).name || (m as any).mealType || 'Analyzed Food',
        timestamp: m.timestamp,
        calories: m.calories,
        protein: m.protein,

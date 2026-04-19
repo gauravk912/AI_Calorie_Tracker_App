@@ -38,7 +38,7 @@ The app is designed as a polished mobile experience rather than a simple form-ba
 
 ### 2. AI-generated nutrition blueprint
 
-- After onboarding, the app calls OpenAI to generate a personalized plan.
+- After onboarding, the app calls an OpenAI-compatible endpoint to generate a personalized plan.
 - The generated plan includes:
   - daily calorie target,
   - protein, carbs, and fats targets,
@@ -122,7 +122,8 @@ src/
 
 **AI / External APIs**
 
-- OpenAI Chat Completions API
+- Ollama via OpenAI-compatible `v1/chat/completions` endpoint
+- Optional OpenAI fallback
 - FatSecret API
 
 **State / Persistence**
@@ -167,7 +168,30 @@ npm install
 npx expo start
 ```
 
-Required environment variables include Firebase config, OpenAI API key, and FatSecret credentials.
+Required environment variables include Firebase config, FatSecret credentials, and either a local Ollama tunnel URL or an OpenAI API key.
+
+### Local Ollama + ngrok setup
+
+If you want the app to use a local model instead of OpenAI:
+
+1. Start Ollama locally and make sure your models are installed.
+2. Expose Ollama with `ngrok http 11434`.
+3. Put the public HTTPS tunnel URL in `.env` as `EXPO_PUBLIC_OLLAMA_BASE_URL`.
+4. Set your local models:
+   - `EXPO_PUBLIC_OLLAMA_TEXT_MODEL` for onboarding and analytics
+   - `EXPO_PUBLIC_OLLAMA_VISION_MODEL` for food image analysis
+5. Restart Expo after changing `.env`.
+
+Example:
+
+```env
+EXPO_PUBLIC_OLLAMA_BASE_URL=https://your-subdomain.ngrok-free.app
+EXPO_PUBLIC_OLLAMA_LOCAL_BASE_URL=http://127.0.0.1:11434
+EXPO_PUBLIC_OLLAMA_TEXT_MODEL=llama3.2:3b
+EXPO_PUBLIC_OLLAMA_VISION_MODEL=moondream:latest
+```
+
+For simulator testing, `EXPO_PUBLIC_OLLAMA_LOCAL_BASE_URL=http://127.0.0.1:11434` is the most reliable option. For physical-device testing, keep `EXPO_PUBLIC_OLLAMA_BASE_URL` pointed at your `ngrok` tunnel. If it is missing, the app falls back to `EXPO_PUBLIC_OPENAI_API_KEY`.
 
 ## Screenshots
 

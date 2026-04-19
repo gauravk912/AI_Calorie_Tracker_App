@@ -6,6 +6,7 @@ import { updateUserMetrics } from '../services/userService';
 import { cacheOnboardingStatus } from '../stores/onboardingCache';
 import { Colors } from '../constants/Colors';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { requestJsonCompletion } from '../services/aiService';
 
 const LOADING_PHASES = [
   "Analyzing physical stats",
@@ -14,6 +15,16 @@ const LOADING_PHASES = [
   "Structuring hydration tracking",
   "Finalizing blueprint"
 ];
+
+interface AiPlan {
+  dailyCalories: number;
+  proteinGrams: number;
+  carbsGrams: number;
+  fatsGrams: number;
+  waterLiters: number;
+  bmi: number;
+  fitnessTip: string;
+}
 
 export default function CalculatingPlanScreen() {
   const router = useRouter();
@@ -77,11 +88,6 @@ export default function CalculatingPlanScreen() {
     if (!user) return;
 
     try {
-      const apiKey = process.env.EXPO_PUBLIC_OPENAI_API_KEY;
-      if (!apiKey || apiKey === "YOUR_OPENAI_KEY_HERE") {
-        throw new Error("Missing exact OpenAI API Key in .env file.");
-      }
-
       const prompt = `
         You are an elite sports nutritionist AI. I am providing you with my exact physical metrics.
         Please calculate my optimal daily macros and water intake to achieve my specific goal.
@@ -107,28 +113,12 @@ export default function CalculatingPlanScreen() {
         }
       `;
 
-      const response = await fetch("https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${apiKey}`
-        },
-        body: JSON.stringify({
-          model: "gpt-3.5-turbo",
-          messages: [
-            { role: "system", content: "You are a perfect JSON generator. Never wrap the JSON in markdown code blocks, just return pure JSON." },
-            { role: "user", content: prompt }
-          ],
-          response_format: { type: "json_object" }
-        })
+      const aiPlan = await requestJsonCompletion<AiPlan>({
+        modelKind: 'text',
+        maxTokens: 500,
+        systemPrompt: 'You are a perfect JSON generator. Never wrap the JSON in markdown code blocks, and never add extra keys.',
+        userContent: prompt,
       });
-
-      if (!response.ok) {
-        throw new Error(`OpenAI API Error: ${response.statusText}`);
-      }
-
-      const rawJSON = await response.json();
-      const aiPlan = JSON.parse(rawJSON.choices[0].message.content);
 
       // Systematically lock plan directly into Firestore
       await updateUserMetrics(user.uid, parsedMetrics, aiPlan);

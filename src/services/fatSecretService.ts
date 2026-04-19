@@ -1,115 +1,109 @@
-import CryptoJS from 'crypto-js';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-export interface FoodItemData {
-  id: string;
-  name: string;
-  brand: string;
-  servingDesc: string;
-  calories: number;
-  protein: number;
-  fats: number;
-  carbs: number;
-}
+const FS_TOKEN_KEY = 'FS_OAUTH_TOKEN';
+const FS_TOKEN_EXPIRY = 'FS_OAUTH_EXPIRY';
 
-// Map the strict user arguments precisely onto OAuth1 Consumer boundaries internally 
-const CONSUMER_KEY = process.env.EXPO_PUBLIC_FATSECRET_CLIENT_ID || '';
-const CONSUMER_SECRET = process.env.EXPO_PUBLIC_FATSECRET_CLIENT_SECRET || '';
+// Environment dependencies mapped securely explicitly
+const CLIENT_ID = process.env.EXPO_PUBLIC_FATSECRET_CLIENT_ID;
+const CLIENT_SECRET = process.env.EXPO_PUBLIC_FATSECRET_CLIENT_SECRET;
+
+// Lightweight string encoder completely bypassing RN missing node modules seamlessly
+const btoa = (input = '') => {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=';
+  let str = input;
+  let output = '';
+  for (let block = 0, charCode, i = 0, map = chars;
+  str.charAt(i | 0) || (map = '=', i % 1);
+  output += map.charAt(63 & block >> 8 - i % 1 * 8)) {
+    charCode = str.charCodeAt(i += 3/4);
+    if (charCode > 0xFF) {
+      throw new Error("'btoa' failed: The string to be encoded contains characters outside of the Latin1 range.");
+    }
+    block = block << 8 | charCode;
+  }
+  return output;
+};
 
 /**
- * Organic implementation of RFC 5849 / OAuth 1.0 explicitly supporting strict Fatsecret query arrays
- * Parses deep complex crypto string evaluations directly mitigating React Native Bridge requirements cleanly
+ * Ensures securely authenticated tokens exist dynamically mapping into FatSecret bounds efficiently caching inside async bounds safely
  */
-export function generateOAuth1Url(method: string, queryParams: any) {
-  const httpMethod = 'GET';
-  const baseUrl = 'https://platform.fatsecret.com/rest/server.api';
-
-  const params: any = {
-    oauth_consumer_key: CONSUMER_KEY,
-    oauth_signature_method: 'HMAC-SHA1',
-    oauth_timestamp: Math.floor(Date.now() / 1000).toString(),
-    oauth_nonce: Math.random().toString(36).substring(2),
-    oauth_version: '1.0',
-    method: method,
-    format: 'json',
-    ...queryParams
-  };
-
-  // Explicit Strict mapping: JS Native encodeURIComponent ignores specific reserved arrays [ ! ' ( ) * ] mapped heavily by OAuth 1.0 RFC standards
-  const rfc3986Encode = (str: string) => encodeURIComponent(str).replace(/[!'()*]/g, c => '%' + c.charCodeAt(0).toString(16).toUpperCase());
-
-  // Execute parameter sort logically mapped explicitly
-  const sortedKeys = Object.keys(params).sort();
-  const paramString = sortedKeys.map(k => `${rfc3986Encode(k)}=${rfc3986Encode(params[k])}`).join('&');
-
-  // Compute absolute Base mathematical structural tracking structurally
-  const signatureBase = `${httpMethod}&${rfc3986Encode(baseUrl)}&${rfc3986Encode(paramString)}`;
-  const signatureKey = `${rfc3986Encode(CONSUMER_SECRET)}&`;
-
-  // Calculate HMAC-SHA1 signature
-  const hash = CryptoJS.HmacSHA1(signatureBase, signatureKey);
-  const signature = CryptoJS.enc.Base64.stringify(hash);
-
-  // Overwrite structurally mapping params array pushing organically
-  params.oauth_signature = signature;
-
-  // Create final mapped URI parameters
-  const finalParamsStr = Object.keys(params)
-    .sort() // Sort rigorously resolving tracking structures
-    .map(k => `${rfc3986Encode(k)}=${rfc3986Encode(params[k])}`)
-    .join('&');
-
-  return `${baseUrl}?${finalParamsStr}`;
-}
-
-export const searchFoodRegistry = async (query: string): Promise<FoodItemData[]> => {
-  if (!query || query.length < 3) return [];
-  if (!CONSUMER_KEY || !CONSUMER_SECRET) {
-    console.warn("OAuth 1.0 Credentials strictly missing internally.");
-    throw new Error("Missing Consumer Keys globally.");
+export const getFatSecretToken = async (): Promise<string> => {
+  if (!CLIENT_ID || !CLIENT_SECRET) {
+    throw new Error('Missing EXPO_PUBLIC_FATSECRET_CLIENT_ID or CLIENT_SECRET natively inside .env constraints');
   }
 
-  // Generate structurally tracked absolute URL organically
-  const requestUrl = generateOAuth1Url('foods.search', {
-    search_expression: query,
-    max_results: '5'
+  // Intercept and parse currently Cached arrays explicitly evaluating Unix time limits mathematically
+  const cachedToken = await AsyncStorage.getItem(FS_TOKEN_KEY);
+  const cachedExpiry = await AsyncStorage.getItem(FS_TOKEN_EXPIRY);
+
+  if (cachedToken && cachedExpiry) {
+    const expiresAt = parseInt(cachedExpiry, 10);
+    const now = Math.floor(Date.now() / 1000);
+    if (now < expiresAt - 300) { // Keep a strict 5-minute safety buffer against expiry drops logically
+      return cachedToken;
+    }
+  }
+
+  // Payload authorization sequence cleanly handling basic Base64 boundaries
+  const authHeader = `Basic ${btoa(`${CLIENT_ID}:${CLIENT_SECRET}`)}`;
+  const response = await fetch('https://oauth.fatsecret.com/connect/token', {
+    method: 'POST',
+    headers: {
+      'Authorization': authHeader,
+      'Content-Type': 'application/x-www-form-urlencoded'
+    },
+    body: 'grant_type=client_credentials&scope=basic'
   });
 
-  try {
-    const resp = await fetch(requestUrl, { method: 'GET' });
-    const data = await resp.json();
-
-    // Explicit API bounds mapping internal tracker errors evaluating 401 exceptions cleanly natively
-    if (data.error) {
-      console.error("FatSecret OAuth 1.0 Sign Reject JSON: ", data);
-      throw new Error(`FatSecret API Error: ${data.error.message || 'Signature Invalid'}`);
-    }
-
-    const items = data?.foods?.food || [];
-    const foodArray = Array.isArray(items) ? items : [items];
-
-    return foodArray.filter((item: any) => item).map((item: any) => {
-      const desc = item.food_description || '';
-
-      const calories = parseInt(desc.match(/Calories:\s*(\d+)kcal/)?.[1] || "0");
-      const fats = parseFloat(desc.match(/Fat:\s*([0-9.]+)g/)?.[1] || "0");
-      const carbs = parseFloat(desc.match(/Carbs:\s*([0-9.]+)g/)?.[1] || "0");
-      const protein = parseFloat(desc.match(/Protein:\s*([0-9.]+)g/)?.[1] || "0");
-      const servingDesc = desc.split('-')[0]?.trim() || "Per 1 portion";
-
-      return {
-        id: item.food_id,
-        name: item.food_name,
-        brand: item.brand_name || 'Generic Base',
-        servingDesc,
-        calories,
-        fats,
-        carbs,
-        protein
-      };
-    });
-
-  } catch (error) {
-    console.error("FatSecret API Array Failure Engine: ", error);
-    return [];
+  if (!response.ok) {
+    const errText = await response.text();
+    console.error("FatSecret Token Swap Error:", errText);
+    throw new Error(`FatSecret OAuth Error: ${response.status}`);
   }
+
+  const data = await response.json();
+  const { access_token, expires_in } = data;
+
+  // Storing structural timestamp limits dynamically correctly mapping Unix time sequences 
+  const newExpiry = Math.floor(Date.now() / 1000) + parseInt(expires_in, 10);
+  
+  await AsyncStorage.setItem(FS_TOKEN_KEY, access_token);
+  await AsyncStorage.setItem(FS_TOKEN_EXPIRY, newExpiry.toString());
+
+  return access_token;
+};
+
+/**
+ * Securely searches external platform strings gracefully tracking native boundaries
+ */
+export const searchFoods = async (searchExpression: string) => {
+  const token = await getFatSecretToken();
+  const url = `https://platform.fatsecret.com/rest/server.api?method=foods.search&search_expression=${encodeURIComponent(searchExpression)}&format=json&max_results=5`;
+
+  const response = await fetch(url, {
+    method: 'GET',
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  });
+
+  if (!response.ok) {
+    console.error("FatSecret Data Error:", response.status);
+    throw new Error(`API Error executing foods.search - ${response.status}`);
+  }
+
+  const result = await response.json();
+  
+  if (result.error) {
+    console.warn("FatSecret Native API Error Extracted:", result.error);
+    throw new Error(`FatSecret API Error [${result.error.code}]: ${result.error.message}`);
+  }
+  
+  if (result.foods && result.foods.food) {
+    // Platform API organically returns an object rather than an array if only 1 item exists logically
+    const foods = Array.isArray(result.foods.food) ? result.foods.food : [result.foods.food];
+    return foods;
+  }
+  
+  return []; // Fallback exactly mapping empty objects securely
 };

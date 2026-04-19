@@ -1,49 +1,56 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, ActivityIndicator, Alert, ScrollView } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Colors } from '../constants/Colors';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Colors } from '../constants/Colors';
 import { useAuth } from '../context/AuthContext';
 import { addMealLog } from '../services/logService';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
-export default function LogFoodDetailsScreen() {
+type MealType = 'Breakfast' | 'Lunch' | 'Dinner' | 'Snack';
+
+export default function LogFoodEntryScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams();
   const { user } = useAuth();
-  
-  // Natively intercept stringified payload integers directly routed explicitly from the FlatList search!
-  const { name, brand, servingDesc, calories, protein, fats, carbs } = useLocalSearchParams<{
-    name: string;
-    brand: string;
-    servingDesc: string;
-    calories: string;
-    protein: string;
-    fats: string;
-    carbs: string;
-  }>();
 
-  // Parse baseline explicitly securely resolving Base API stats cleanly
-  const baseCals = parseInt(calories || "0");
-  const basePro = parseFloat(protein || "0");
-  const baseFat = parseFloat(fats || "0");
-  const baseCarb = parseFloat(carbs || "0");
+  // Extract URL constraints directly resolving strictly dynamically mapped Arrays
+  const nameParam = Array.isArray(params.name) ? params.name[0] : (params.name || "Unknown Food");
+  const brandParam = Array.isArray(params.brand) ? params.brand[0] : (params.brand || "Generic base");
+  const servingParam = Array.isArray(params.serving) ? params.serving[0] : (params.serving || "serving");
 
-  const [quantity, setQuantity] = useState<string>("1");
+  const baseCalories = parseFloat(Array.isArray(params.calories) ? params.calories[0] : (params.calories || "0"));
+  const baseProtein = parseFloat(Array.isArray(params.protein) ? params.protein[0] : (params.protein || "0"));
+  const baseFats = parseFloat(Array.isArray(params.fat) ? params.fat[0] : (params.fat || "0"));
+  const baseCarbs = parseFloat(Array.isArray(params.carbs) ? params.carbs[0] : (params.carbs || "0"));
+
+  // State Constraints evaluating structural numbers organically dynamically safely
+  const [multiplierStr, setMultiplierStr] = useState<string>('1');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [mealType, setMealType] = useState<MealType>('Snack');
 
-  // Dynamic Scale Generator precisely executing real-time Float bounds based aggressively on the Input multiplier
-  const multiplier = parseFloat(quantity) || 0; // Fallback strictly resolving 0 visually mitigating `NaN`
-  
-  const compCals = Math.round(baseCals * multiplier);
-  const compPro = (basePro * multiplier).toFixed(1).replace(/\.0$/, ''); // Rounds softly trimming `.0` natively
-  const compFat = (baseFat * multiplier).toFixed(1).replace(/\.0$/, '');
-  const compCarb = (baseCarb * multiplier).toFixed(1).replace(/\.0$/, '');
+  // Infer local time exactly mapping constraints natively structurally
+  useEffect(() => {
+    const hour = new Date().getHours();
+    if (hour >= 5 && hour < 11) setMealType('Breakfast');
+    else if (hour >= 11 && hour < 16) setMealType('Lunch');
+    else if (hour >= 16 && hour < 21) setMealType('Dinner');
+    else setMealType('Snack');
+  }, []);
+
+  // Strict Matrix limits parsing numeric floats gracefully dropping NaN artifacts safely
+  const multiplier = parseFloat(multiplierStr) || 0;
+
+  const calTotal = Math.round(baseCalories * multiplier);
+  const proTotal = Math.round(baseProtein * multiplier);
+  const fatTotal = Math.round(baseFats * multiplier);
+  const carbTotal = Math.round(baseCarbs * multiplier);
 
   const handleLogFood = async () => {
     if (!user) return;
     if (multiplier <= 0) {
-      Alert.alert("Invalid Size", "Please strictly enter a valid quantity greater than zero.");
+      Alert.alert("Invalid Serving", "Please enter a valid serving size greater than 0.");
       return;
     }
 
@@ -53,16 +60,18 @@ export default function LogFoodDetailsScreen() {
       const activeDate = storedDate ? new Date(storedDate) : new Date();
 
       await addMealLog(user.uid, activeDate, {
-        title: name || 'Custom Food',
-        calories: compCals,
-        protein: parseFloat(compPro),
-        fats: parseFloat(compFat),
-        carbs: parseFloat(compCarb)
-      });
+        title: nameParam,
+        name: nameParam,
+        mealType: mealType,
+        calories: calTotal,
+        protein: proTotal,
+        fats: fatTotal,
+        carbs: carbTotal
+      } as any);
 
       router.push('/(main)');
-    } catch (e) {
-      Alert.alert("Error logging meal", "Could not safely sync to Firebase backend directly.");
+    } catch (error) {
+      Alert.alert("Error Logging Food", "Could not sync data securely to server limit bounds.");
     } finally {
       setIsSubmitting(false);
     }
@@ -70,7 +79,8 @@ export default function LogFoodDetailsScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-      
+
+      {/* Structural Native Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <MaterialCommunityIcons name="chevron-left" size={32} color="#1A1A1A" />
@@ -79,89 +89,115 @@ export default function LogFoodDetailsScreen() {
         <View style={styles.placeholder} />
       </View>
 
-      <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
-        
-        {/* Core Detail Title Array mirroring exactly SS bounds */}
+      <ScrollView style={styles.contentWrap} showsVerticalScrollIndicator={false}>
+
+        {/* Native Food Identity Titles */}
         <View style={styles.titleBlock}>
-          <Text style={styles.foodTitle}>{name}</Text>
-          {brand && brand !== 'Generic Base' && (
-             <Text style={styles.foodBrand}>{brand}</Text>
-          )}
+          <Text style={styles.hugeTitle}>{nameParam}</Text>
+          <Text style={styles.brandTitle}>{brandParam}</Text>
         </View>
 
-        {/* Scalable Multiplier Bounds mapping user edits specifically natively */}
-        <View style={styles.sectionBlock}>
-          <Text style={styles.sectionLabel}>SERVING QUANTITY</Text>
-          <View style={styles.inputArrayBox}>
-             <TextInput
-                style={styles.quantityInput}
-                keyboardType="numeric"
-                value={quantity}
-                onChangeText={setQuantity}
-                maxLength={4}
-                selectTextOnFocus
-             />
-             <Text style={styles.baseDescriptorTag}>x ({servingDesc})</Text>
+        {/* Serving Entry Matrix Tracking Explicitly Structurally Custom Scaled Inputs */}
+        <View style={styles.sectionHeaderWrap}>
+          <Text style={styles.sectionHeading}>SERVING SIZE</Text>
+        </View>
+        <View style={styles.servingInputBox}>
+          <Text style={styles.servingPrefix}>Per</Text>
+          <TextInput
+            style={styles.numericInput}
+            value={multiplierStr}
+            onChangeText={setMultiplierStr}
+            keyboardType="numeric"
+            maxLength={4}
+          />
+          <Text style={styles.servingSuffix}>{servingParam}</Text>
+        </View>
+
+        {/* Central Massive Dynamic Calories Grid */}
+        <View style={styles.caloriesCard}>
+          <View style={styles.calCardHeader}>
+            <MaterialCommunityIcons name="fire" size={20} color="#FF9800" />
+            <Text style={styles.calCardTitle}>Calories</Text>
+          </View>
+          <View style={styles.calCardBody}>
+            <Text style={styles.calHugeNumber}>{calTotal}</Text>
+            <Text style={styles.calUnitText}>kcal</Text>
           </View>
         </View>
 
-        {/* Master Calorie Core Box natively structuring huge layouts accurately */}
-        <View style={styles.calorieCard}>
-          <View style={styles.ccRow}>
-             <MaterialCommunityIcons name="fire" size={20} color="#EF5350" />
-             <Text style={styles.ccLabel}>Calories</Text>
-          </View>
-          <View style={styles.ccMathRow}>
-             <Text style={styles.ccHugeInt}>{compCals}</Text>
-             <Text style={styles.ccUnit}>kcal</Text>
-          </View>
-        </View>
-
-        {/* 3 Macro Data Grid Cells isolating explicitly precisely matching structural mockups identically */}
-        <View style={styles.macroGrid}>
-          
-          <View style={styles.macroCell}>
-            <View style={[styles.macroIconCircle, { backgroundColor: '#E3F2FD' }]}>
-              <MaterialCommunityIcons name="pot-mix" size={20} color="#2196F3" />
+        {/* Triple Sub Component Array mapping P, F, C structurally natively explicitly tracking colors visually */}
+        <View style={styles.tripleGrid}>
+          <View style={styles.macroCard}>
+            <View style={[styles.macroIconWrap, { backgroundColor: '#E0F2FE' }]}>
+              <MaterialCommunityIcons name="bowl-mix-outline" size={20} color="#0369A1" />
             </View>
-            <Text style={styles.macroCellLabel}>Protein</Text>
-            <Text style={styles.macroCellValue}>{compPro} <Text style={styles.macroCellUnit}>g</Text></Text>
-          </View>
-
-          <View style={styles.macroCell}>
-            <View style={[styles.macroIconCircle, { backgroundColor: '#FFF3E0' }]}>
-              <MaterialCommunityIcons name="lightning-bolt" size={20} color="#FF9800" />
+            <Text style={styles.macroCardTitle}>Protein</Text>
+            <View style={styles.macroValRow}>
+              <Text style={styles.macroBaseNumber}>{proTotal}</Text>
+              <Text style={styles.macroBaseUnit}>g</Text>
             </View>
-            <Text style={styles.macroCellLabel}>Fats</Text>
-            <Text style={styles.macroCellValue}>{compFat} <Text style={styles.macroCellUnit}>g</Text></Text>
           </View>
 
-          <View style={styles.macroCell}>
-            <View style={[styles.macroIconCircle, { backgroundColor: '#E8F5E9' }]}>
-              <MaterialCommunityIcons name="leaf" size={20} color="#4CAF50" />
+          <View style={styles.macroCard}>
+            <View style={[styles.macroIconWrap, { backgroundColor: '#FFEDD5' }]}>
+              <MaterialCommunityIcons name="lightning-bolt-outline" size={20} color="#EA580C" />
             </View>
-            <Text style={styles.macroCellLabel}>Carbs</Text>
-            <Text style={styles.macroCellValue}>{compCarb} <Text style={styles.macroCellUnit}>g</Text></Text>
+            <Text style={styles.macroCardTitle}>Fats</Text>
+            <View style={styles.macroValRow}>
+              <Text style={styles.macroBaseNumber}>{fatTotal}</Text>
+              <Text style={styles.macroBaseUnit}>g</Text>
+            </View>
           </View>
 
+          <View style={styles.macroCard}>
+            <View style={[styles.macroIconWrap, { backgroundColor: '#DCFCE7' }]}>
+              <MaterialCommunityIcons name="leaf" size={20} color="#15803D" />
+            </View>
+            <Text style={styles.macroCardTitle}>Carbs</Text>
+            <View style={styles.macroValRow}>
+              <Text style={styles.macroBaseNumber}>{carbTotal}</Text>
+              <Text style={styles.macroBaseUnit}>g</Text>
+            </View>
+          </View>
         </View>
+
+        {/* Meal Tracker Toggles Natively parsing the string dynamically */}
+        <View style={styles.sectionHeaderWrap}>
+          <Text style={styles.sectionHeading}>MEAL TYPE</Text>
+        </View>
+        <View style={styles.mealTypeGrid}>
+          {['Breakfast', 'Lunch', 'Dinner', 'Snack'].map((type) => {
+            const isActive = mealType === type;
+            return (
+              <TouchableOpacity
+                key={type}
+                style={[styles.mealPill, isActive && styles.mealPillActive]}
+                onPress={() => setMealType(type as MealType)}
+              >
+                <Text style={[styles.mealPillText, isActive && styles.mealPillTextActive]}>
+                  {type}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+
       </ScrollView>
 
-      {/* Persistent Base Log Matrix completely decoupled exactly rendering solid #00BFA5 purely */}
+      {/* Massive Baseline Confirmation Object completely mapping aesthetic exactness safely explicitly */}
       <View style={styles.footer}>
-        <TouchableOpacity 
-          style={styles.logButton} 
-          onPress={handleLogFood} 
-          activeOpacity={0.8}
+        <TouchableOpacity
+          style={styles.logButton}
+          onPress={handleLogFood}
           disabled={isSubmitting}
         >
           {isSubmitting ? (
-             <ActivityIndicator color="#FFF" />
+            <ActivityIndicator color="#FFF" />
           ) : (
-             <View style={{flexDirection: 'row', alignItems: 'center', gap: 8}}>
-                <MaterialCommunityIcons name="check-circle-outline" size={24} color="#FFFFFF" />
-                <Text style={styles.logButtonText}>Log Food</Text>
-             </View>
+            <View style={styles.logBtnInner}>
+              <MaterialCommunityIcons name="check-circle-outline" size={24} color="#FFF" />
+              <Text style={styles.logButtonText}>Log Food</Text>
+            </View>
           )}
         </TouchableOpacity>
       </View>
@@ -179,193 +215,240 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
     paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6', // Extensively slight native bounding shadow structurally matching mockups 
   },
   backButton: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#F9FAFB',
     alignItems: 'center',
     justifyContent: 'center',
   },
   headerTitle: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: '800',
     color: '#1A1A1A',
   },
   placeholder: {
     width: 44,
   },
-  
-  scrollContent: {
-    paddingHorizontal: 20,
-    paddingTop: 24,
-    paddingBottom: 40, 
+
+  contentWrap: {
+    flex: 1,
+    paddingHorizontal: 24,
   },
-  
+
   titleBlock: {
-    marginBottom: 28, // Safely isolating primary contexts precisely natively 
+    marginTop: 8,
+    marginBottom: 24,
   },
-  foodTitle: {
-    fontSize: 32, // Huge tracking exactly mirroring SS bounding matrices cleanly manually
+  hugeTitle: {
+    fontSize: 32,
     fontWeight: '900',
     color: '#1A1A1A',
-    marginBottom: 6,
+    marginBottom: 4,
   },
-  foodBrand: {
+  brandTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#00BFA5', 
+    color: Colors.primary,
   },
 
-  sectionBlock: {
-    marginBottom: 32,
+  sectionHeaderWrap: {
+    marginBottom: 12,
   },
-  sectionLabel: {
+  sectionHeading: {
     fontSize: 13,
-    fontWeight: '700',
+    fontWeight: '800',
     color: '#9CA3AF',
     letterSpacing: 0.5,
-    marginBottom: 12, 
-  },
-  inputArrayBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    borderRadius: 16,
-    paddingHorizontal: 16,
-    height: 56,
-  },
-  quantityInput: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: '#1A1A1A',
-    width: 60,
-    height: '100%',
-  },
-  baseDescriptorTag: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#4B5563',
-    marginLeft: 4,
   },
 
-  // Central Calorie Mathematics Block organically nesting cleanly 
-  calorieCard: {
+  servingInputBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderColor: '#F3F4F6',
-    borderRadius: 24,
-    paddingVertical: 28,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16, 
-    // Intense physical native tracking explicitly matching soft mock shadow bounds 
+    borderRadius: 16,
+    height: 60,
+    paddingHorizontal: 16,
+    marginBottom: 24,
     shadowColor: Colors.text,
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 16,
-    elevation: 3, 
+    shadowOpacity: 0.03,
+    shadowRadius: 8,
+    elevation: 2,
   },
-  ccRow: {
+  servingPrefix: {
+    fontSize: 17,
+    fontWeight: '600',
+    color: '#4B5563',
+    marginRight: 8,
+  },
+  numericInput: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#1A1A1A',
+    minWidth: 32,
+    borderBottomWidth: 2,
+    borderColor: Colors.primary,
+    textAlign: 'center',
+    paddingVertical: 2,
+  },
+  servingSuffix: {
+    fontSize: 17,
+    fontWeight: '600',
+    color: '#4B5563',
+    marginLeft: 8,
+    flex: 1,
+  },
+
+  caloriesCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    paddingVertical: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
+    marginBottom: 20,
+    shadowColor: Colors.text,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.06,
+    shadowRadius: 20,
+    elevation: 4,
+  },
+  calCardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 12,
-    gap: 6,
   },
-  ccLabel: {
+  calCardTitle: {
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: '800',
     color: '#1A1A1A',
+    marginLeft: 6,
   },
-  ccMathRow: {
+  calCardBody: {
     flexDirection: 'row',
-    alignItems: 'baseline', 
-    gap: 8,
+    alignItems: 'baseline',
   },
-  ccHugeInt: {
+  calHugeNumber: {
     fontSize: 56,
     fontWeight: '900',
     color: '#1A1A1A',
     letterSpacing: -1,
   },
-  ccUnit: {
+  calUnitText: {
     fontSize: 20,
     fontWeight: '700',
     color: '#9CA3AF',
+    marginLeft: 6,
   },
 
-  // 3-Macro Matrix Array cleanly splitting structurally matching identical Mockups 
-  macroGrid: {
+  tripleGrid: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     gap: 12,
+    marginBottom: 32,
   },
-  macroCell: {
+  macroCard: {
     flex: 1,
     backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    paddingVertical: 16,
+    alignItems: 'center',
     borderWidth: 1,
     borderColor: '#F3F4F6',
-    borderRadius: 20,
-    paddingVertical: 20,
-    alignItems: 'center',
     shadowColor: Colors.text,
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.03,
     shadowRadius: 10,
     elevation: 2,
   },
-  macroIconCircle: {
+  macroIconWrap: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 12,
+    marginBottom: 10,
   },
-  macroCellLabel: {
-    fontSize: 14,
-    fontWeight: '600',
+  macroCardTitle: {
+    fontSize: 13,
+    fontWeight: '700',
     color: '#6B7280',
     marginBottom: 6,
   },
-  macroCellValue: {
-    fontSize: 24,
+  macroValRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+  },
+  macroBaseNumber: {
+    fontSize: 20,
     fontWeight: '800',
     color: '#1A1A1A',
   },
-  macroCellUnit: {
-    fontSize: 12,
-    fontWeight: '700',
+  macroBaseUnit: {
+    fontSize: 13,
+    fontWeight: '600',
     color: '#9CA3AF',
+    marginLeft: 2,
+  },
+
+  mealTypeGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    marginBottom: 40,
+  },
+  mealPill: {
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    borderRadius: 20,
+    backgroundColor: '#F3F4F6',
+  },
+  mealPillActive: {
+    backgroundColor: Colors.primary,
+  },
+  mealPillText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#6B7280',
+  },
+  mealPillTextActive: {
+    color: '#FFFFFF',
   },
 
   footer: {
     paddingHorizontal: 20,
     paddingVertical: 24,
+    borderTopWidth: 1,
+    borderTopColor: '#F3F4F6',
     backgroundColor: '#FFFFFF',
   },
   logButton: {
-    height: 60,
-    backgroundColor: '#00BFA5', // Explicit deep vibrant Green pulling exact organic DB bounds cleanly 
-    borderRadius: 30,
+    height: 64,
+    backgroundColor: '#059669', // Specific explicit deep Green identically matching actual aesthetics Native 
+    borderRadius: 32,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#00BFA5',
+    shadowColor: '#059669',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.25,
     shadowRadius: 16,
-    elevation: 8,
+    elevation: 4,
+  },
+  logBtnInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   logButtonText: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '800',
     color: '#FFFFFF',
+    marginLeft: 8,
   }
 });

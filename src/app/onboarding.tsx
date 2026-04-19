@@ -12,7 +12,7 @@ const TOTAL_STEPS = 5;
 export default function OnboardingScreen() {
   const router = useRouter();
   const { user } = useAuth();
-  
+
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
 
@@ -20,12 +20,12 @@ export default function OnboardingScreen() {
   const [gender, setGender] = useState('');
   const [goal, setGoal] = useState('');
   const [workoutDays, setWorkoutDays] = useState('');
-  
+
   // DOB
   const [dobDate, setDobDate] = useState('');
   const [dobMonth, setDobMonth] = useState('');
   const [dobYear, setDobYear] = useState('');
-  
+
   // Stats
   const [heightFt, setHeightFt] = useState('');
   const [heightIn, setHeightIn] = useState('');
@@ -50,7 +50,7 @@ export default function OnboardingScreen() {
   const finishOnboarding = () => {
     if (!user) return;
     setLoading(true);
-    
+
     const metrics = {
       gender,
       goal,
@@ -60,9 +60,9 @@ export default function OnboardingScreen() {
       weight: weightLbs,
     };
 
-    router.replace({ 
-      pathname: '/calculating-plan', 
-      params: { metrics: JSON.stringify(metrics) } 
+    router.replace({
+      pathname: '/calculating-plan',
+      params: { metrics: JSON.stringify(metrics) }
     });
   };
 
@@ -90,34 +90,34 @@ export default function OnboardingScreen() {
     <View style={styles.stepContainer}>
       <Text style={styles.title}>What is your gender?</Text>
       <Text style={styles.subtitle}>Helps us calculate your metabolic rate accurately.</Text>
-      
+
       <View style={styles.optionsRow}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={[
-            styles.card, 
+            styles.card,
             gender === 'Male' && { borderColor: '#007AFF', backgroundColor: '#E6F4FE' }
-          ]} 
+          ]}
           onPress={() => setGender('Male')}
         >
-          <MaterialCommunityIcons 
-            name="gender-male" 
-            color={gender === 'Male' ? '#007AFF' : Colors.text} 
-            size={48} 
+          <MaterialCommunityIcons
+            name="gender-male"
+            color={gender === 'Male' ? '#007AFF' : Colors.text}
+            size={48}
           />
           <Text style={[styles.cardText, { color: gender === 'Male' ? '#007AFF' : Colors.text }]}>Male</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity 
+        <TouchableOpacity
           style={[
-            styles.card, 
+            styles.card,
             gender === 'Female' && { borderColor: '#FF2D55', backgroundColor: '#FDECF4' }
-          ]} 
+          ]}
           onPress={() => setGender('Female')}
         >
-          <MaterialCommunityIcons 
-            name="gender-female" 
-            color={gender === 'Female' ? '#FF2D55' : Colors.text} 
-            size={48} 
+          <MaterialCommunityIcons
+            name="gender-female"
+            color={gender === 'Female' ? '#FF2D55' : Colors.text}
+            size={48}
           />
           <Text style={[styles.cardText, { color: gender === 'Female' ? '#FF2D55' : Colors.text }]}>Female</Text>
         </TouchableOpacity>
@@ -136,11 +136,11 @@ export default function OnboardingScreen() {
       <View style={styles.stepContainer}>
         <Text style={styles.title}>What is your primary goal?</Text>
         <Text style={styles.subtitle}>We'll adjust your daily intake targets based on this.</Text>
-        
+
         {goalsList.map(g => (
-          <TouchableOpacity 
+          <TouchableOpacity
             key={g.id}
-            style={[styles.rowCard, goal === g.id && { borderColor: accentColor, backgroundColor: accentBg }]} 
+            style={[styles.rowCard, goal === g.id && { borderColor: accentColor, backgroundColor: accentBg }]}
             onPress={() => setGoal(g.id)}
           >
             <MaterialCommunityIcons name={g.icon as any} color={goal === g.id ? accentColor : Colors.text} size={28} />
@@ -162,11 +162,11 @@ export default function OnboardingScreen() {
       <View style={styles.stepContainer}>
         <Text style={styles.title}>Workout Frequency</Text>
         <Text style={styles.subtitle}>How many days a week do you train?</Text>
-        
+
         {frequencyList.map(f => (
-          <TouchableOpacity 
+          <TouchableOpacity
             key={f.id}
-            style={[styles.rowCard, workoutDays === f.id && { borderColor: accentColor, backgroundColor: accentBg }]} 
+            style={[styles.rowCard, workoutDays === f.id && { borderColor: accentColor, backgroundColor: accentBg }]}
             onPress={() => setWorkoutDays(f.id)}
           >
             <MaterialCommunityIcons name={f.icon as any} color={workoutDays === f.id ? accentColor : Colors.text} size={28} />
@@ -181,7 +181,7 @@ export default function OnboardingScreen() {
     <View style={styles.stepContainer}>
       <Text style={styles.title}>When were you born?</Text>
       <Text style={styles.subtitle}>Your age affects how many calories you burn.</Text>
-      
+
       <View style={styles.dateInputRow}>
         <TextInput
           style={[styles.dateInput, dobDate.length > 0 && { borderColor: accentColor }]}
@@ -218,7 +218,7 @@ export default function OnboardingScreen() {
     <View style={styles.stepContainer}>
       <Text style={styles.title}>Physical Stats</Text>
       <Text style={styles.subtitle}>Last step! We need your height and weight.</Text>
-      
+
       <View style={styles.statsContainer}>
         <Text style={styles.inputLabel}>Height</Text>
         <View style={styles.dateInputRow}>
@@ -263,8 +263,8 @@ export default function OnboardingScreen() {
   );
 
   return (
-    <KeyboardAvoidingView 
-      style={styles.container} 
+    <KeyboardAvoidingView
+      style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <View style={styles.header}>
@@ -288,13 +288,13 @@ export default function OnboardingScreen() {
       </ScrollView>
 
       <View style={styles.footer}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={[
-            styles.primaryButton, 
+            styles.primaryButton,
             { backgroundColor: accentColor, shadowColor: accentColor },
             !isStepValid() && styles.primaryButtonDisabled
-          ]} 
-          onPress={handleNext} 
+          ]}
+          onPress={handleNext}
           disabled={!isStepValid() || loading}
         >
           {loading ? (

@@ -2,6 +2,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import { Platform, StyleSheet, TouchableOpacity, View, Modal, Text, TouchableWithoutFeedback, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
+import * as ImagePicker from 'expo-image-picker';
 import { Colors } from '../constants/Colors';
 
 export function FloatingTabBar({ state, descriptors, navigation }: any) {
@@ -11,11 +12,20 @@ export function FloatingTabBar({ state, descriptors, navigation }: any) {
   const handleActionMenu = (action: string) => {
     setActionMenuVisible(false);
     if (action === 'food') {
-      router.push('/add-log');
+      router.push('/food-search');
     } else if (action === 'exercise') {
       router.push('/log-exercise');
     } else if (action === 'scan') {
-      Alert.alert("Premium Feature", "Scan Food is only available for Premium Paid users!");
+      // Secure local Native Action array bounds tracking gracefully seamlessly executing custom Native Camera inputs cleanly implicitly
+      Alert.alert(
+        "Scan Food", 
+        "Select an image source dynamically to parse your food native arrays:",
+        [
+          { text: "Cancel", style: "cancel" },
+          { text: "Camera", onPress: openCamera },
+          { text: "Gallery", onPress: openGallery }
+        ]
+      );
     } else if (action === 'water') {
       router.push('/add-water');
     } else {
@@ -23,6 +33,42 @@ export function FloatingTabBar({ state, descriptors, navigation }: any) {
       Alert.alert("Coming Soon", `The ${action} feature is under construction!`);
     }
   };
+
+  const openCamera = async () => {
+    const perm = await ImagePicker.requestCameraPermissionsAsync();
+    if (!perm.granted) {
+      Alert.alert("Permission Required", "Camera access is completely strictly required to scan naturally.");
+      return;
+    }
+    try {
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        quality: 0.8,
+      });
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        router.push({ pathname: '/analyze-food', params: { imageUri: result.assets[0].uri } });
+      }
+    } catch (error) {
+      console.warn("Hardware Fault Caught Explicitly:", error);
+      Alert.alert(
+        "Hardware Missing", 
+        "It looks like you are using a Simulator which doesn't have a physical camera. Please select 'Gallery' to upload a test image instead!"
+      );
+    }
+  };
+
+  const openGallery = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      quality: 0.8,
+    });
+    if (!result.canceled && result.assets && result.assets.length > 0) {
+      router.push({ pathname: '/analyze-food', params: { imageUri: result.assets[0].uri } });
+    }
+  };
+
   return (
     <View style={styles.masterContainer}>
 
